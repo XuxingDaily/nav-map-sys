@@ -1,19 +1,56 @@
-# 广州市域离线 WebGIS 与路径规划平台
+<div align="center">
 
-`nav-map-sys` 是一个围绕广州 OSM 数据构建的离线空间服务项目。它以 Spring Boot 为
-应用层，以 PostgreSQL/PostGIS 和 pgRouting 为地理计算核心，提供 POI 空间检索、道路
-吸附、两点路径、多景点访问顺序优化和 Mapbox Vector Tile（MVT）服务，并使用 Redis
-缓存热点空间候选集和矢量瓦片。
+<h1>🧭 广州市域离线 WebGIS 与路径规划平台</h1>
 
-仓库包含广州数据导入、Flyway 数据演进、道路低层级 LOD、
-版本化缓存失效、真实数据库证据测试、JMeter 负载基线以及可直接由后端托管的 Canvas
-WebGIS 前端。当前工作数据统一使用 Web Mercator（`EPSG:3857`），空间距离以米为单位。
+<p><strong>面向广州市域离线导航与空间信息服务，完整实现从空间数据入库、地图渲染到路径决策的 WebGIS 工程链路。</strong></p>
 
-详细测试口径、限制和复现命令见[项目成果与实证](docs/project-showcase.md)以及
-[测试报告](docs/test-report-2026-10-31.md)。性能数字均保留数据规模、缓存状态、样本数和
-对照方法，不把单机基准泛化为生产容量。
+<p>
+  <img alt="Java 21" src="https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white">
+  <img alt="Spring Boot 4.1.1" src="https://img.shields.io/badge/Spring%20Boot-4.1.1-6DB33F?logo=springboot&logoColor=white">
+  <img alt="PostgreSQL 17" src="https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white">
+  <img alt="PostGIS 3.5" src="https://img.shields.io/badge/PostGIS-3.5-2F5D50?logo=postgresql&logoColor=white">
+  <img alt="pgRouting 3.8" src="https://img.shields.io/badge/pgRouting-3.8-336791">
+  <img alt="Redis" src="https://img.shields.io/badge/Redis-Cache-DC382D?logo=redis&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/Tests-40%20passed%20%2B%205%20evidence-2EA44F?logo=githubactions&logoColor=white">
+</p>
 
-## 已实现能力
+<p>
+  <a href="#-项目简介">项目简介</a> ·
+  <a href="#-核心设计">核心设计</a> ·
+  <a href="#-性能实证">性能实证</a> ·
+  <a href="#-快速开始">快速开始</a> ·
+  <a href="#-项目文档">项目文档</a>
+</p>
+
+</div>
+
+---
+
+## 📌 项目简介
+
+`nav-map-sys` 是基于广州 OSM 数据构建的离线空间服务平台。项目以 Spring Boot 为
+应用层，以 PostgreSQL/PostGIS 与 pgRouting 为地理计算核心，配套独立的 Canvas WebGIS
+前端，提供 POI 空间检索、道路吸附、两点路径、多景点访问顺序优化和 Mapbox Vector
+Tile（MVT）服务。
+
+这不是只完成接口联调的课程 Demo：项目覆盖 **广州数据导入、空间索引、路径拓扑、
+Redis 空间缓存、道路 LOD、版本化缓存失效、Flyway 演进、真实性能证据和容器化交付**，
+重点展示我在 WebGIS 系统设计、空间数据库优化、路径算法工程化和前后端性能治理方面的能力。
+
+> **数据规模**：证据库包含 **628,609 条有效道路边**与 **34,370 条有效 POI**；
+> 仓库另保留小规模内置种子，便于评审者一键启动。两种口径在文档中严格区分。
+
+### 我解决的核心问题
+
+| 工程问题 | 解决方案 | 能力体现 |
+| --- | --- | --- |
+| 大范围路网直接渲染响应慢、体积大 | PostGIS 预聚合道路 LOD + MVT 分级加载 + Redis/HTTP 多级缓存 | 空间数据处理、地图性能优化 |
+| 附近/视口查询重复访问数据库 | 固定局部网格缓存候选集，批量回源后执行圆形或矩形精确过滤 | 缓存设计、结果正确性 |
+| 任意坐标无法直接参与路由 | GiST/KNN 道路吸附 + `pgr_withPoints` 虚拟点路由 | PostGIS、pgRouting |
+| 多景点访问顺序组合爆炸 | 小规模 Held–Karp 精确解，大规模 Nearest Neighbor + 2-opt | 算法选型与复杂度控制 |
+| 数据更新后缓存难以一致失效 | 数据版本进入缓存键，事务内递增版本，旧键自然过期 | 一致性设计、工程可靠性 |
+
+## ✨ 已实现能力
 
 - POI 关键字、附近、视口范围和详情查询；
 - 基于固定局部网格的 POI 空间缓存；
@@ -31,25 +68,22 @@ WebGIS 前端。当前工作数据统一使用 Web Mercator（`EPSG:3857`），�
 导入后的证据库（628,609 条有效道路边、34,370 条有效 POI）。两种数据规模在文档中
 明确区分，避免把演示种子数量和广州实测数量混为一谈。
 
-## 系统结构
+## 🏗️ 系统架构
 
-```text
-HTTP / JSON / MVT
-        │
-        ▼
-Controller ── 参数校验、统一 Result、异常处理
-        │
-        ▼
-Service ───── POI 查询、道路吸附、路径规划、TSP、瓦片服务
-   │                    │
-   │                    ├── Redis：POI 网格、POI 详情、MVT
-   │                    │
-   ▼                    ▼
-MyBatis Mapper ── PostgreSQL + PostGIS + pgRouting
-                         │
-                         ├── 空间索引和几何运算
-                         ├── 最短路径与成本矩阵
-                         └── ST_AsMVT 瓦片编码
+```mermaid
+flowchart LR
+    UI["Canvas WebGIS 前端"] -->|HTTP / JSON / MVT| API["Spring Boot API"]
+    API --> POI["POI 空间检索"]
+    API --> ROUTE["吸附、路径与 TSP"]
+    API --> TILE["MVT 瓦片服务"]
+    POI --> CACHE[("Redis<br/>网格 / 详情 / MVT")]
+    TILE --> CACHE
+    POI --> DB[("PostgreSQL<br/>PostGIS + pgRouting")]
+    ROUTE --> DB
+    TILE --> DB
+    DB --> INDEX["GiST / KNN / 空间函数"]
+    DB --> GRAPH["路网拓扑 / 成本矩阵"]
+    DB --> MVT["ST_AsMVT / 道路 LOD"]
 ```
 
 Maven 工程按职责拆成三个模块：
@@ -63,7 +97,7 @@ Maven 工程按职责拆成三个模块：
 `nav-server` 内部继续按业务域划分为 `poi`、`routing`、`map`、`cache`、`version`
 等包，避免把空间查询、算法和接口组装混在同一个服务中。
 
-## 核心模块
+## 🧠 核心设计
 
 ### 1. POI 查询与空间网格缓存
 
@@ -200,7 +234,28 @@ Spring Boot 连接空的 `nav` 数据库后自动执行尚未运行的 migration
 `flyway_schema_history` 记录版本和校验和。已经在共享环境执行过的 migration 不应
 再修改；后续结构或内置数据变化应继续新增更高版本。
 
-## 主要技术栈
+## 📊 性能实证
+
+所有数字均来自固定数据集与本地证据脚本，保留样本数、缓存状态和对照方法；
+它们用于说明优化是否有效，不被包装成生产环境容量承诺。
+
+| 场景 | 优化前 / 对照组 | 优化后 | 结果 |
+| --- | ---: | ---: | ---: |
+| GiST 空间查询（历史稳定样本） | 77.515 ms | 0.056 ms | 查询耗时下降约 **99.93%** |
+| 低层级 MVT P50 | 409.46 ms | 2.30 ms | P50 下降约 **99.44%** |
+| 低层级 MVT 传输体积 | 原始道路瓦片 | LOD 道路瓦片 | 体积减少 **91.2%** |
+| 500 m POI 附近查询 | 数据库 4.99 ms | 热缓存 1.52 ms | 响应时间下降约 **69.5%** |
+| 前端固定视口查询（100 次） | 线性扫描约 200 ms | R-tree 约 0.88 ms | 视口检索显著加速 |
+| Canvas 地图渲染平均耗时 | 1.35 ms | 0.15 ms | 平均耗时下降约 **88.9%** |
+
+测试覆盖不仅验证 HTTP 状态码，还检查空间结果正确性、缓存命中/失效、数据版本切换、
+路径顺序和真实数据库执行计划。当前 Maven 测试共 **45 项**：常规环境执行 40 项通过，
+另有 5 项需要广州证据库的性能与执行计划测试；前端测试 **13 项通过**。
+
+复现方式与原始口径见[项目成果与量化实证](docs/project-showcase.md)和
+[测试报告](docs/test-report-2026-10-31.md)。
+
+## 🧰 技术栈
 
 - Java 21、Spring Boot 4；
 - MyBatis-Plus、MyBatis XML；
@@ -210,7 +265,7 @@ Spring Boot 连接空的 `nav` 数据库后自动执行尚未运行的 migration
 - Scalar / OpenAPI；
 - Maven 多模块、Docker Compose。
 
-## Docker 一键启动
+## 🚀 快速开始
 
 Compose 会启动三个容器：
 
@@ -282,7 +337,7 @@ docker compose up --build -d
 `down -v` 会永久删除这套 Compose 的 PostgreSQL 和 Redis 卷，只应用于明确需要重置
 演示环境的情况。
 
-## 本地开发
+## 🧪 本地开发与验证
 
 准备 PostgreSQL、PostGIS、pgRouting 和 Redis，并按照 `.env.example` 配置连接信息，
 然后执行：
@@ -306,7 +361,7 @@ powershell -ExecutionPolicy Bypass -File scripts\run_resume_evidence.ps1
 更详细的数据库迁移约定见
 [`nav-server/src/main/resources/db/README.md`](nav-server/src/main/resources/db/README.md)。
 
-## 完整文档
+## 📚 项目文档
 
 - [文档索引](docs/README.md)
 - [后端 API Reference](docs/api-reference.md)
