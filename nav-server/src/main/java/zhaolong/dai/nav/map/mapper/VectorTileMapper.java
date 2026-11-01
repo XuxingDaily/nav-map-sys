@@ -3,9 +3,13 @@ package zhaolong.dai.nav.map.mapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import zhaolong.dai.nav.map.mapper.model.VectorTileRow;
+import zhaolong.dai.nav.map.mapper.model.MapBoundsRow;
 
 @Mapper
 public interface VectorTileMapper {
+
+    /** Returns the merged Guangzhou administrative extent in EPSG:3857. */
+    MapBoundsRow selectAdminBounds();
 
     /**
      * 判断图层是否存在且已经启用。

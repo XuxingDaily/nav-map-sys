@@ -1,6 +1,11 @@
 package zhaolong.dai.nav.map.service;
 
+import zhaolong.dai.nav.map.mapper.model.MapBoundsRow;
+
 public interface VectorTileService {
+
+    /** Returns the Guangzhou administrative extent in local map coordinates. */
+    MapBoundsRow getAdminBounds();
 
     /**
      * 生成指定图层的局部矢量瓦片。

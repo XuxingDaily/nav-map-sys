@@ -1,13 +1,17 @@
-# nav-map-sys
+# 广州市域离线 WebGIS 与路径规划平台
 
-`nav-map-sys` 是一个面向局部平面坐标路网的 WebGIS 后端。项目以 Spring Boot 为
-应用层，以 PostgreSQL、PostGIS 和 pgRouting 为地理计算核心，提供 POI 查询、道路
-吸附、两点路径规划、多景点游览顺序优化和 Mapbox Vector Tile（MVT）服务，并使用
-Redis 缓解重复空间查询和瓦片生成的开销。
+`nav-map-sys` 是一个围绕广州 OSM 数据构建的离线空间服务项目。它以 Spring Boot 为
+应用层，以 PostgreSQL/PostGIS 和 pgRouting 为地理计算核心，提供 POI 空间检索、道路
+吸附、两点路径、多景点访问顺序优化和 Mapbox Vector Tile（MVT）服务，并使用 Redis
+缓存热点空间候选集和矢量瓦片。
 
-当前内置数据使用未知来源参数的局部平面坐标，因此几何统一以 `SRID 0` 保存，距离
-单位沿用源数据的局部坐标单位。系统没有把这些坐标误标成 WGS84；以后取得坐标转换
-参数时，可以在不破坏现有业务的前提下增加标准坐标字段。
+仓库包含广州数据导入、Flyway 数据演进、道路低层级 LOD、
+版本化缓存失效、真实数据库证据测试、JMeter 负载基线以及可直接由后端托管的 Canvas
+WebGIS 前端。当前工作数据统一使用 Web Mercator（`EPSG:3857`），空间距离以米为单位。
+
+详细测试口径、限制和复现命令见[项目成果与实证](docs/project-showcase.md)以及
+[测试报告](docs/test-report-2026-10-31.md)。性能数字均保留数据规模、缓存状态、样本数和
+对照方法，不把单机基准泛化为生产容量。
 
 ## 已实现能力
 
@@ -23,8 +27,9 @@ Redis 缓解重复空间查询和瓦片生成的开销。
 - Flyway 管理数据库结构、函数和演示数据初始化；
 - Docker Compose 一键启动后端、空间数据库和 Redis。
 
-项目当前包含 643 个路网节点、945 条道路边、6225 个 POI、8 个地图图层和
-2935 个地图要素，可在全新数据库中自动初始化。
+仓库保留小规模内置种子以便快速初始化；简历与性能报告使用的是完成广州 OSM/POI
+导入后的证据库（628,609 条有效道路边、34,370 条有效 POI）。两种数据规模在文档中
+明确区分，避免把演示种子数量和广州实测数量混为一谈。
 
 ## 系统结构
 
@@ -187,11 +192,13 @@ nav:mvt:{layer}:cs{cacheSchemaVersion}:ds{dataRevision}:{z}:{x}:{y}
 
 - V1～V4：扩展、路网、POI、地图表和数据版本表；
 - V5～V8：图层元数据、MVT/导入函数以及旧库兼容修正；
-- V9～V11：路网、POI 和底图演示数据。
+- V9～V11：早期路网、POI 和底图演示数据；
+- V12～V18：广州数据模型、Web Mercator 瓦片函数和道路 LOD；
+- V19～V25：Geofabrik 底图、低层级聚合、行政面与道路裁剪修正。
 
 Spring Boot 连接空的 `nav` 数据库后自动执行尚未运行的 migration，并通过
 `flyway_schema_history` 记录版本和校验和。已经在共享环境执行过的 migration 不应
-再修改；后续结构或内置数据变化应继续新增 V12、V13 等版本。
+再修改；后续结构或内置数据变化应继续新增更高版本。
 
 ## 主要技术栈
 
@@ -212,7 +219,7 @@ Compose 会启动三个容器：
 - `backend`：Java 21 Spring Boot API。
 
 首次启动时 PostgreSQL 镜像创建空的 `nav` 数据库。数据库和 Redis 健康后后端才会
-启动，随后 Flyway 自动执行 V1～V11。
+启动，随后 Flyway 自动执行尚未运行的迁移；全新数据库当前会执行至 V25。
 
 ### 1. 准备环境变量
 
@@ -285,5 +292,25 @@ mvn test
 mvn -pl nav-server -am spring-boot:run
 ```
 
+前端源码位于独立的 `nav-map-sys-front` 仓库。其 `npm run build` 会执行 TypeScript
+检查并将生产产物写入本仓库的 `nav-server/src/main/resources/static`，因此启动后端后
+可直接访问 `http://localhost:8080` 查看广州离线导航页面。
+
+当前验证命令：
+
+```powershell
+mvn -pl nav-server -am test
+powershell -ExecutionPolicy Bypass -File scripts\run_resume_evidence.ps1
+```
+
 更详细的数据库迁移约定见
 [`nav-server/src/main/resources/db/README.md`](nav-server/src/main/resources/db/README.md)。
+
+## 完整文档
+
+- [文档索引](docs/README.md)
+- [后端 API Reference](docs/api-reference.md)
+- [后端架构与模块](docs/architecture.md)
+- [项目成果与量化实证](docs/project-showcase.md)
+- [后端测试报告](docs/test-report-2026-10-31.md)
+- [数据库迁移约定](nav-server/src/main/resources/db/README.md)

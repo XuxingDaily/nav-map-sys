@@ -8,6 +8,7 @@ import zhaolong.dai.nav.constans.MessageConstants;
 import zhaolong.dai.nav.exception.MapLayerNotFoundException;
 import zhaolong.dai.nav.map.mapper.VectorTileMapper;
 import zhaolong.dai.nav.map.mapper.model.VectorTileRow;
+import zhaolong.dai.nav.map.mapper.model.MapBoundsRow;
 import zhaolong.dai.nav.map.service.VectorTileService;
 import zhaolong.dai.nav.version.DatasetCode;
 import zhaolong.dai.nav.version.service.DatasetRevisionService;
@@ -24,6 +25,11 @@ public class VectorTileServiceImpl implements VectorTileService {
     private final VectorTileMapper vectorTileMapper;
     private final VectorTileCache vectorTileCache;
     private final DatasetRevisionService datasetRevisionService;
+
+    @Override
+    public MapBoundsRow getAdminBounds() {
+        return vectorTileMapper.selectAdminBounds();
+    }
 
     /**
      * @param layerCode 图层编码

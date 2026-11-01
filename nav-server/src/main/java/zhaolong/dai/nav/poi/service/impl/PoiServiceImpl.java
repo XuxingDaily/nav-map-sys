@@ -155,26 +155,36 @@ public class PoiServiceImpl extends ServiceImpl<PoiMapper, PoiPO> implements Poi
     }
 
     private PoiVO convertRow(PoiRow row) {
-        return new PoiVO(
-            row.getId(),
-            row.getName(),
-            row.getContext(),
-            LocalPointVO.builder().x(row.getX()).y(row.getY()).build(),
-            row.getDataVersion()
-        );
+        return PoiVO.builder()
+                .id(row.getId())
+                .sourceId(row.getSourceId())
+                .name(row.getName())
+                .context(row.getContext())
+                .category(row.getCategory())
+                .basicCategory(row.getBasicCategory())
+                .confidence(row.getConfidence())
+                .address(row.getAddress())
+                .location(LocalPointVO.builder().x(row.getX()).y(row.getY()).build())
+                .dataVersion(row.getDataVersion())
+                .build();
     }
 
     private PoiVO convertItem(PoiCacheItem item) {
-        return new PoiVO(
-                item.id(),
-                item.name(),
-                item.context(),
-                LocalPointVO.builder()
+        return PoiVO.builder()
+                .id(item.id())
+                .sourceId(item.sourceId())
+                .name(item.name())
+                .context(item.context())
+                .category(item.category())
+                .basicCategory(item.basicCategory())
+                .confidence(item.confidence())
+                .address(item.address())
+                .location(LocalPointVO.builder()
                         .x(item.x())
                         .y(item.y())
-                        .build(),
-                item.dataVersion()
-        );
+                        .build())
+                .dataVersion(item.dataVersion())
+                .build();
     }
 
     private boolean insideViewport(

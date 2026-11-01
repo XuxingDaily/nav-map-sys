@@ -9,6 +9,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
 
 @Data
 @Builder
@@ -20,9 +21,19 @@ public class PoiPO {
     @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
+    private UUID sourceId;
+
     private String name;
 
     private String context;
+
+    private String category;
+
+    private String basicCategory;
+
+    private Double confidence;
+
+    private String address;
 
     /*
      * 不直接映射 geom_local，

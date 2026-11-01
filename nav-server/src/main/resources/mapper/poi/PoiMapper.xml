@@ -8,8 +8,13 @@
     <select id="selectByKeyword" resultType="zhaolong.dai.nav.poi.mapper.model.PoiRow">
         SELECT
             id,
+            source_id AS sourceId,
             name,
             context,
+            category,
+            basic_category AS basicCategory,
+            confidence,
+            address,
             ST_X(geom_local) AS x,
             ST_Y(geom_local) AS y,
             coordinate_status AS coordinateStatus,
@@ -28,8 +33,13 @@
     <select id="selectDetailById" resultType="zhaolong.dai.nav.poi.mapper.model.PoiRow">
         SELECT
             id,
+            source_id AS sourceId,
             name,
             context,
+            category,
+            basic_category AS basicCategory,
+            confidence,
+            address,
             ST_X(geom_local) AS x,
             ST_Y(geom_local) AS y,
             coordinate_status AS coordinateStatus,
@@ -44,13 +54,18 @@
             SELECT ST_SetSRID(ST_MakePoint(
                         CAST(#{x} AS DOUBLE PRECISION),
                         CAST(#{y} AS DOUBLE PRECISION)
-                    ), 0) AS geom
+                    ), 3857) AS geom
         )
 
         SELECT
             p.id,
+            p.source_id AS sourceId,
             p.name,
             p.context,
+            p.category,
+            p.basic_category AS basicCategory,
+            p.confidence,
+            p.address,
             ST_X(p.geom_local) AS x,
             ST_Y(p.geom_local) AS y,
             p.coordinate_status AS coordinateStatus,
@@ -76,14 +91,19 @@
                         #{viewport[1]},
                         #{viewport[2]},
                         #{viewport[3]},
-                        0
+                        3857
                     ) AS geom
         )
 
         SELECT
             p.id,
+            p.source_id AS sourceId,
             p.name,
             p.context,
+            p.category,
+            p.basic_category AS basicCategory,
+            p.confidence,
+            p.address,
             ST_X(p.geom_local) AS x,
             ST_Y(p.geom_local) AS y,
             p.coordinate_status AS coordinateStatus,
@@ -107,13 +127,18 @@
                         #{minY},
                         #{maxX},
                         #{maxY},
-                        0
+                        3857
                     ) AS geom
         )
         SELECT
             p.id,
+            p.source_id AS sourceId,
             p.name,
             p.context,
+            p.category,
+            p.basic_category AS basicCategory,
+            p.confidence,
+            p.address,
             ST_X(p.geom_local) AS x,
             ST_Y(p.geom_local) AS y,
             p.coordinate_status AS coordinateStatus,

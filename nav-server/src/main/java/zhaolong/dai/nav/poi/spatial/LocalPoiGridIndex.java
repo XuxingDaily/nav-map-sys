@@ -13,9 +13,9 @@ import java.util.List;
 @Component
 public class LocalPoiGridIndex {
 
-    private static final double ORIGIN_X = 46000.0;
-    private static final double ORIGIN_Y = 24000.0;
-    private static final double WORLD_SPAN = 8192.0;
+    private static final double ORIGIN_X = 12_550_000.0;
+    private static final double ORIGIN_Y = 2_800_000.0;
+    private static final double WORLD_SPAN = 262_144.0;
 
     private final int zoom;
     private final int cellCount;

@@ -34,11 +34,13 @@ spring:
 
 nav:
   cache:
-    cache-schema-version: 1
+    cache-schema-version: 2
     poi-detail-ttl: 30m
     poi-query-ttl: 5m
     poi-spatial-ttl: 1h
-    poi-spatial-zoom: 4
+    # z=9 is the best balanced setting in the current Guangzhou benchmark:
+    # 500 m and 2 km hot-cache queries both outperform the direct database path.
+    poi-spatial-zoom: ${CACHE_POI_SPATIAL_ZOOM:9}
     vector-tile-ttl: 7d
     road-snap-ttl: 10m
     route-ttl: 20m

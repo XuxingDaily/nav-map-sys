@@ -5,6 +5,34 @@
 
 <mapper namespace="zhaolong.dai.nav.routing.mapper.RoutingMapper">
 
+    <!--
+        Driving FASTEST costs are always seconds. A usable direction-specific
+        speed wins, the legacy generic speed is the second choice, and the
+        imported pgRouting duration is the final fallback. The static duration
+        also remains authoritative for whether a direction is traversable.
+    -->
+    <sql id="drivingForwardTimeSeconds">
+        CASE
+            WHEN driving_cost_s IS NULL OR driving_cost_s &lt;= 0 THEN -1.0
+            WHEN length_m > 0 AND maxspeed_forward BETWEEN 1.0 AND 160.0
+                THEN length_m * 3.6 / maxspeed_forward
+            WHEN length_m > 0 AND speed_kmh BETWEEN 1.0 AND 160.0
+                THEN length_m * 3.6 / speed_kmh
+            ELSE driving_cost_s
+        END
+    </sql>
+
+    <sql id="drivingReverseTimeSeconds">
+        CASE
+            WHEN driving_reverse_s IS NULL OR driving_reverse_s &lt;= 0 THEN -1.0
+            WHEN length_m > 0 AND maxspeed_backward BETWEEN 1.0 AND 160.0
+                THEN length_m * 3.6 / maxspeed_backward
+            WHEN length_m > 0 AND speed_kmh BETWEEN 1.0 AND 160.0
+                THEN length_m * 3.6 / speed_kmh
+            ELSE driving_reverse_s
+        END
+    </sql>
+
     <sql id="routingEdgesSql">
         SELECT
             id,
@@ -16,8 +44,8 @@
                     CASE WHEN driving_reverse_s > 0 THEN length_m ELSE -1.0 END::FLOAT8 AS reverse_cost
                 </when>
                 <when test="travelMode == 'DRIVING'">
-                    CASE WHEN driving_cost_s > 0 THEN driving_cost_s ELSE -1.0 END::FLOAT8 AS cost,
-                    CASE WHEN driving_reverse_s > 0 THEN driving_reverse_s ELSE -1.0 END::FLOAT8 AS reverse_cost
+                    (<include refid="drivingForwardTimeSeconds"/>)::FLOAT8 AS cost,
+                    (<include refid="drivingReverseTimeSeconds"/>)::FLOAT8 AS reverse_cost
                 </when>
                 <when test="strategy == 'SHORTEST'">
                     CASE WHEN walking_cost_s > 0 THEN length_m ELSE -1.0 END::FLOAT8 AS cost,
@@ -33,18 +61,18 @@
         <choose>
             <when test="travelMode == 'DRIVING'">
                 AND COALESCE(access_car, true)
-                AND driving_cost_s > 0
+                AND (driving_cost_s > 0 OR driving_reverse_s > 0)
             </when>
             <otherwise>
                 AND COALESCE(access_walk, true)
-                AND walking_cost_s > 0
+                AND (walking_cost_s > 0 OR walking_reverse_s > 0)
             </otherwise>
         </choose>
     </sql>
 
     <select id="selectNearestEdge" resultType="zhaolong.dai.nav.routing.mapper.model.SnapRow">
         WITH query_point AS (
-            SELECT ST_SetSRID(ST_MakePoint(#{x}, #{y}), 0) AS geom
+            SELECT ST_SetSRID(ST_MakePoint(#{x}, #{y}), 3857) AS geom
         ), candidate AS (
             SELECT
                 edge.id AS edge_id,
@@ -57,11 +85,11 @@
               <choose>
                   <when test="travelMode == 'DRIVING'">
                       AND COALESCE(edge.access_car, true)
-                      AND edge.driving_cost_s > 0
+                      AND (edge.driving_cost_s > 0 OR edge.driving_reverse_s > 0)
                   </when>
                   <otherwise>
                       AND COALESCE(edge.access_walk, true)
-                      AND edge.walking_cost_s > 0
+                      AND (edge.walking_cost_s > 0 OR edge.walking_reverse_s > 0)
                   </otherwise>
               </choose>
               AND ST_DWithin(edge.geom_local, query.geom, #{maxDistanceLocal})
@@ -120,6 +148,10 @@
                 route.edge,
                 edge.geom_local,
                 edge.network_version,
+                edge.length_m,
+                edge.speed_kmh,
+                edge.maxspeed_forward,
+                edge.maxspeed_backward,
                 edge.driving_cost_s,
                 edge.driving_reverse_s,
                 edge.walking_cost_s,
@@ -143,6 +175,7 @@
             SELECT
                 path_seq,
                 network_version,
+                length_m * ABS(to_fraction - from_fraction) AS distance_m,
                 CASE
                     WHEN from_fraction &lt; to_fraction THEN cut_geom
                     ELSE ST_Reverse(cut_geom)
@@ -150,8 +183,24 @@
                 <choose>
                     <when test="travelMode == 'DRIVING'">
                         CASE
-                            WHEN from_fraction &lt; to_fraction THEN driving_cost_s
-                            ELSE driving_reverse_s
+                            WHEN from_fraction &lt; to_fraction THEN
+                                CASE
+                                    WHEN driving_cost_s IS NULL OR driving_cost_s &lt;= 0 THEN -1.0
+                                    WHEN length_m > 0 AND maxspeed_forward BETWEEN 1.0 AND 160.0
+                                        THEN length_m * 3.6 / maxspeed_forward
+                                    WHEN length_m > 0 AND speed_kmh BETWEEN 1.0 AND 160.0
+                                        THEN length_m * 3.6 / speed_kmh
+                                    ELSE driving_cost_s
+                                END
+                            ELSE
+                                CASE
+                                    WHEN driving_reverse_s IS NULL OR driving_reverse_s &lt;= 0 THEN -1.0
+                                    WHEN length_m > 0 AND maxspeed_backward BETWEEN 1.0 AND 160.0
+                                        THEN length_m * 3.6 / maxspeed_backward
+                                    WHEN length_m > 0 AND speed_kmh BETWEEN 1.0 AND 160.0
+                                        THEN length_m * 3.6 / speed_kmh
+                                    ELSE driving_reverse_s
+                                END
                         END * ABS(to_fraction - from_fraction) AS duration_seconds
                     </when>
                     <otherwise>
@@ -174,7 +223,7 @@
               AND from_fraction &lt;> to_fraction
         )
         SELECT
-            SUM(ST_Length(geom))::FLOAT8 AS distanceLocal,
+            SUM(distance_m)::FLOAT8 AS distanceLocal,
             SUM(duration_seconds)::FLOAT8 AS durationSeconds,
             ST_AsText(ST_MakeLine(geom ORDER BY path_seq)) AS geometryWkt,
             MAX(network_version) AS networkVersion

@@ -5,6 +5,18 @@
 
 <mapper namespace="zhaolong.dai.nav.map.mapper.VectorTileMapper">
 
+    <select id="selectAdminBounds" resultType="zhaolong.dai.nav.map.mapper.model.MapBoundsRow">
+        SELECT
+            ST_XMin(bounds)::DOUBLE PRECISION AS min_x,
+            ST_YMin(bounds)::DOUBLE PRECISION AS min_y,
+            ST_XMax(bounds)::DOUBLE PRECISION AS max_x,
+            ST_YMax(bounds)::DOUBLE PRECISION AS max_y
+        FROM (
+            SELECT ST_Extent(geom_local) AS bounds
+            FROM public.admin_area
+        ) extent
+    </select>
+
     <select id="existsEnabledLayer" resultType="boolean">
         SELECT EXISTS (
             SELECT 1 FROM public.map_layer

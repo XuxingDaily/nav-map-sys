@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import zhaolong.dai.nav.map.service.VectorTileService;
+import zhaolong.dai.nav.map.mapper.model.MapBoundsRow;
 
 import java.time.Duration;
 
@@ -29,6 +30,12 @@ public class VectorTileController {
             );
 
     private final VectorTileService vectorTileService;
+
+    @Operation(summary = "获取广州行政区范围")
+    @GetMapping("/bounds")
+    public MapBoundsRow getAdminBounds() {
+        return vectorTileService.getAdminBounds();
+    }
 
     @Operation(
             summary = "获取矢量瓦片",

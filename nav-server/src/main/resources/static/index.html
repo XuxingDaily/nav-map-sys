@@ -3,40 +3,46 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="小谷围岛导航与多点游览规划" />
-    <title>小谷围岛导航</title>
-    <script type="module" crossorigin src="/assets/index-C9dagNr2.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-BlFxt2kC.css">
+    <meta name="description" content="基于 OSM、PostGIS 与 pgRouting 的广州市域离线导航与多点游览规划" />
+    <meta name="theme-color" content="#ffffff" />
+    <title>广州离线导航 · WebGIS 路径规划</title>
+    <script type="module" crossorigin src="/assets/index-CbyFXndW.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BqYMWBNQ.css">
   </head>
   <body>
     <div id="app" class="app-shell">
       <header class="topbar">
         <div class="brand">
-          <span class="brand-mark">N</span>
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" role="img">
+              <path d="M7 23.5 12.2 8l5.1 7.6L25 6.5 19.8 24l-5.2-7.4L7 23.5Z" />
+              <circle cx="24.8" cy="6.7" r="2.6" />
+            </svg>
+          </span>
           <div>
-            <strong>小谷围岛导航</strong>
-            <span>Local spatial routing lab</span>
+            <strong>广州离线导航</strong>
+            <span>GUANGZHOU OFFLINE ROUTING</span>
           </div>
         </div>
         <div class="topbar-meta">
           <span class="status-dot"></span>
-          <span id="system-status">静态地图准备中</span>
+          <span id="system-status">广州市域底图准备中</span>
         </div>
       </header>
 
       <aside class="sidebar">
         <nav class="tabs" aria-label="功能导航">
-          <button class="tab active" data-panel="route-panel">两点路线</button>
-          <button class="tab" data-panel="tour-panel">多点游览</button>
-          <button class="tab" data-panel="poi-panel">POI / 吸附</button>
-          <button class="tab" data-panel="layer-panel">图层管理</button>
+          <button class="tab active" data-panel="route-panel"><span>路线</span><small>导航规划</small></button>
+          <button class="tab" data-panel="tour-panel"><span>游览</span><small>多点优化</small></button>
+          <button class="tab" data-panel="poi-panel"><span>探索</span><small>POI 查询</small></button>
+          <button class="tab" data-panel="layer-panel"><span>图层</span><small>地图设置</small></button>
         </nav>
 
         <section id="route-panel" class="panel active">
           <div class="panel-heading">
-            <p class="eyebrow">ROUTE</p>
-            <h1>规划一条路线</h1>
-            <p>从搜索结果中选择起点和终点，后端负责道路吸附与 pgRouting 寻路。</p>
+            <p class="eyebrow">ROUTE PLANNER</p>
+            <h1>今天想去哪里？</h1>
+            <p>搜索地点或直接在地图选点，使用广州市域离线路网完成吸附与路径规划。</p>
           </div>
 
           <div class="field autocomplete" data-autocomplete="route-origin">
@@ -73,15 +79,15 @@
               </select>
             </div>
           </div>
-          <button id="route-submit" class="primary-button" type="button">开始规划</button>
+          <button id="route-submit" class="primary-button" type="button"><span>开始规划</span><i aria-hidden="true">→</i></button>
           <div id="route-result" class="result-card empty">选择两个 POI 后开始规划。</div>
         </section>
 
         <section id="tour-panel" class="panel">
           <div class="panel-heading">
-            <p class="eyebrow">TOUR</p>
-            <h1>安排多点游览</h1>
-            <p>添加 2～12 个地点，由后端计算真实路网成本矩阵并优化访问顺序。</p>
+            <p class="eyebrow">SMART TOUR</p>
+            <h1>一次串联多个目的地</h1>
+            <p>添加 2～12 个地点，基于真实路网成本自动优化访问顺序。</p>
           </div>
           <div class="field autocomplete" data-autocomplete="tour-stop">
             <label for="tour-stop">添加游览点</label>
@@ -113,15 +119,15 @@
             <input id="tour-round-trip" type="checkbox" checked />
             <span>返回第一个游览点（闭环）</span>
           </label>
-          <button id="tour-submit" class="primary-button" type="button">优化游览顺序</button>
+          <button id="tour-submit" class="primary-button" type="button"><span>优化游览顺序</span><i aria-hidden="true">→</i></button>
           <div id="tour-result" class="result-card empty">至少添加两个游览点。</div>
         </section>
 
         <section id="poi-panel" class="panel">
           <div class="panel-heading">
-            <p class="eyebrow">EXPLORE</p>
-            <h1>POI 与道路吸附</h1>
-            <p>按关键词或局部坐标查询，同时可以直接测试道路吸附接口。</p>
+            <p class="eyebrow">EXPLORE GUANGZHOU</p>
+            <h1>发现地点与路网</h1>
+            <p>搜索广州市域 POI、分析附近地点，或检查任意坐标的道路吸附结果。</p>
           </div>
           <div class="field">
             <label for="poi-keyword">POI 关键词</label>
@@ -135,8 +141,8 @@
           <div class="section-divider"></div>
           <h2 class="subheading">附近 POI / 道路吸附</h2>
           <div class="coordinate-grid">
-            <div class="field"><label for="local-x">X</label><input id="local-x" type="number" step="any" value="50534.254573" /></div>
-            <div class="field"><label for="local-y">Y</label><input id="local-y" type="number" step="any" value="22086.360885" /></div>
+            <div class="field"><label for="local-x">X</label><input id="local-x" type="number" step="any" value="12622000" /></div>
+            <div class="field"><label for="local-y">Y</label><input id="local-y" type="number" step="any" value="2639000" /></div>
           </div>
           <div class="coordinate-grid">
             <div class="field">
@@ -158,9 +164,9 @@
 
         <section id="layer-panel" class="panel layers-panel">
           <div class="panel-heading">
-            <p class="eyebrow">LAYERS</p>
-            <h1>图层管理</h1>
-            <p>独立控制基础地图和业务结果图层的显示状态。</p>
+            <p class="eyebrow">MAP STYLE</p>
+            <h1>自定义地图内容</h1>
+            <p>按需显示底图主题、POI、规划路线与分析结果。</p>
           </div>
           <div id="layer-controls" class="layer-controls"></div>
         </section>
@@ -168,7 +174,14 @@
 
       <main class="map-stage">
         <div id="map" class="map-canvas" aria-label="导航地图"></div>
-        <div class="map-badge">LOCAL COORDINATE · <span id="viewport-poi-status">POI 加载中</span></div>
+        <div class="map-badge map-analysis-control">
+          <div class="map-context"><strong>广州市域</strong><span>OSM · 离线矢量底图</span></div>
+          <label class="analysis-switch" for="viewport-poi-toggle">
+            <span id="viewport-poi-status">POI 分析已关闭</span>
+            <input id="viewport-poi-toggle" type="checkbox" role="switch" aria-label="视口 POI 分析" />
+            <i aria-hidden="true"></i>
+          </label>
+        </div>
         <div id="map-pick-tip" class="map-pick-tip">在地图上单击选择位置，拖动仍用于平移</div>
         <div id="map-legend" class="legend">
           <div class="legend-base">
@@ -182,7 +195,7 @@
           <div id="route-legend-items" class="route-legend-items"></div>
         </div>
         <div class="map-actions">
-          <button id="clear-map" class="map-action" type="button">清除结果</button>
+          <button id="clear-map" class="map-action" type="button"><span aria-hidden="true">×</span> 清除结果</button>
         </div>
         <aside id="feature-detail" class="feature-detail" hidden>
           <button id="feature-detail-close" class="feature-detail-close" type="button" aria-label="关闭详情">×</button>
